@@ -1,20 +1,24 @@
 # Hong Kong 3D Map
 
-Интерактивная 3D карта Гонконга на MapLibre GL JS.
+Interactive 3D map of Hong Kong built with MapLibre GL JS.
 
-## Запуск
+## Run locally
 
-Откройте `index.html` в браузере или запустите локальный сервер:
+Open `index.html` in a browser, or serve the folder:
 
 ```bash
 python3 -m http.server 8000
 ```
 
-Откройте http://localhost:8000
+Then open http://localhost:8000
 
-## Возможности
+## Features
 
-- 3D перспектива (наклон карты), переключение 2D / 3D
-- Зум, панорамирование, поворот (⌘ + перетаскивание)
-- Транзакции Midland 2018: точки по координатам (`data/midland_2018_cleaned.geojson`), цвет по цене за кв. фут
-- Серая монохромная подложка, полупрозрачные 3D-здания
+- 3D tilt and **2D / 3D** toggle
+- Zoom, pan, rotate (⌘ / Ctrl + drag to rotate bearing)
+- **Midland 2018** transactions as points at their coordinates (`data/midland_2018_cleaned.geojson`), colour by price per sq ft
+- Grey monochrome basemap and semi-transparent 3D buildings
+
+## Data
+
+Place `midland_2018_cleaned.geojson` in `data/` (GeoJSON points with building, floor, price, etc.).

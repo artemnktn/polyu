@@ -83,8 +83,8 @@
 <body>
   <div id="map"></div>
   <div class="mode-toggle">
-    <button class="mode-btn" id="btn2d" title="2D">2D</button>
-    <button class="mode-btn active" id="btn3d" title="3D">3D</button>
+    <button class="mode-btn" id="btn2d" title="Flat map (2D)">2D</button>
+    <button class="mode-btn active" id="btn3d" title="Tilted view (3D)">3D</button>
   </div>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
@@ -112,7 +112,7 @@
         }
       }
 
-      // «Пол» — 3D-здания (полупрозрачные), кубы транзакций рисуются поверх
+      // 3D buildings (semi-transparent); transaction points render on top
       map.addSource('openfreemap-buildings', {
         type: 'vector',
         url: 'https://tiles.openfreemap.org/planet'
@@ -140,7 +140,13 @@
         }
       }, labelLayerId);
 
-      // Midland 2018: транзакции по их локации на карте (точки)
+      // Midland 2018: one point per transaction at its location
+      function escapeHtml(s) {
+        const d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+      }
+
       fetch('data/midland_2018_cleaned.geojson')
         .then(res => res.json())
         .then(geojson => {
@@ -174,16 +180,16 @@
           const popup = new maplibregl.Popup({ closeButton: true });
           map.on('click', 'midland-points', (e) => {
             const p = e.features[0].properties;
-            const dateStr = p.date ? new Date(p.date).toLocaleDateString() : '';
+            const dateStr = p.date ? new Date(p.date).toLocaleDateString('en-GB') : '';
             popup.setLngLat(e.lngLat).setHTML(
               `<div style="min-width:180px;font-size:13px;">
-                <strong>${p.building || ''}</strong><br>
-                ${p.estate ? p.estate + '<br>' : ''}
-                ${p.floor ? 'Floor ' + p.floor + (p.unit ? ' · ' + p.unit : '') + '<br>' : ''}
-                ${p.area ? 'Area: ' + p.area + ' sq ft<br>' : ''}
-                ${p.price != null ? 'Price: HK$ ' + p.price + ' (×10k)<br>' : ''}
-                ${p.price_per_sqft ? 'HK$ ' + Math.round(p.price_per_sqft).toLocaleString() + '/sq ft<br>' : ''}
-                ${dateStr ? dateStr : ''}
+                <strong>${escapeHtml(p.building || '')}</strong><br>
+                ${p.estate ? escapeHtml(String(p.estate)) + '<br>' : ''}
+                ${p.floor != null ? 'Floor ' + escapeHtml(String(p.floor)) + (p.unit ? ' · Unit ' + escapeHtml(String(p.unit)) : '') + '<br>' : ''}
+                ${p.area != null ? 'Area: ' + escapeHtml(String(p.area)) + ' sq ft<br>' : ''}
+                ${p.price != null ? 'Price: HK$ ' + escapeHtml(String(p.price)) + ' (×10k)<br>' : ''}
+                ${p.price_per_sqft != null ? 'Price/sq ft: HK$ ' + Math.round(Number(p.price_per_sqft)).toLocaleString('en-HK') + '<br>' : ''}
+                ${dateStr ? 'Date: ' + dateStr : ''}
               </div>`
             ).addTo(map);
           });
@@ -191,7 +197,7 @@
           map.on('mouseenter', 'midland-points', () => { map.getCanvas().style.cursor = 'pointer'; });
           map.on('mouseleave', 'midland-points', () => { map.getCanvas().style.cursor = ''; });
         })
-        .catch(err => console.warn('Midland data not loaded:', err));
+        .catch(err => console.warn('Could not load Midland GeoJSON:', err));
     });
 
     map.addControl(new maplibregl.NavigationControl());
