@@ -4,12 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hong Kong — 3D Map</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       overflow: hidden;
       background: #f0f1f3;
     }
@@ -38,12 +41,12 @@
       min-width: 200px;
       max-width: 320px;
       padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px solid rgba(0, 0, 0, 0.08);
-      background: rgba(255, 255, 255, 0.92);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
       color: #111827;
       font-size: 13px;
       line-height: 1.35;
@@ -56,14 +59,15 @@
       height: 26px;
       border: none;
       border-radius: 10px;
-      background: rgba(17, 24, 39, 0.06);
-      color: #111827;
+      background: rgba(255, 255, 255, 0.20);
+      color: #374151;
+      border: 1px solid rgba(255, 255, 255, 0.25);
       cursor: pointer;
       font-size: 16px;
       line-height: 26px;
     }
     #txnPopup .close:hover {
-      background: rgba(17, 24, 39, 0.10);
+      background: rgba(255, 255, 255, 0.30);
     }
 
     .maplibregl-canvas-container {
@@ -240,9 +244,33 @@
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script>
+    // Optional: Mapbox Light Grey basemap (requires token).
+    // Create a token at https://account.mapbox.com/ and paste it here.
+    const MAPBOX_TOKEN = ''; // Set your token from https://account.mapbox.com/ to use Mapbox Light basemap
+    const MAPBOX_LIGHT_STYLE = {
+      version: 8,
+      sources: {
+        'mapbox-light': {
+          type: 'raster',
+          tiles: [
+            `https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/256/{z}/{x}/{y}@2x?access_token=${MAPBOX_TOKEN}`
+          ],
+          tileSize: 256,
+          attribution:
+            '© <a href="https://www.mapbox.com/about/maps/" target="_blank" rel="noopener">Mapbox</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'
+        }
+      },
+      layers: [
+        { id: 'background', type: 'background', paint: { 'background-color': '#f3f4f6' } },
+        { id: 'mapbox-light', type: 'raster', source: 'mapbox-light' }
+      ]
+    };
+
+    const BASEMAP_STYLE = MAPBOX_TOKEN ? MAPBOX_LIGHT_STYLE : 'https://tiles.openfreemap.org/styles/positron';
+
     const map = new maplibregl.Map({
       container: 'map',
-      style: 'https://tiles.openfreemap.org/styles/positron',
+      style: BASEMAP_STYLE,
       center: [114.1694, 22.3193],
       zoom: 14,
       pitch: 55,
@@ -428,13 +456,17 @@
 
           const markerSizeForZoomM = (z) => {
             // Adaptive size: zoom out -> bigger polygons (meters on the ground).
-            // Tuned so it stays readable when far out.
-            if (z <= 11) return 70;
-            if (z <= 12) return 55;
-            if (z <= 13) return 42;
-            if (z <= 14) return 32;
-            if (z <= 15) return 24;
-            return 18;
+            let m;
+            if (z <= 11) m = 120;
+            else if (z <= 12) m = 95;
+            else if (z <= 13) m = 70;
+            else if (z <= 14) m = 52;
+            else if (z <= 15) m = 38;
+            else m = 26;
+
+            // In 2D mode (pitch=0), make polygons much larger on zoom-out (3×).
+            if (!is3d && z <= 14) m *= 3;
+            return m;
           };
 
           const buildMarkers = (markerM) => {
@@ -512,7 +544,7 @@
                   20000, '#fde725'
                 ],
                 'fill-opacity': 0.95,
-                'fill-outline-color': '#ffffff'
+                'fill-outline-color': 'rgba(0,0,0,0)'
               }
             });
             syncOverlay();
@@ -528,6 +560,8 @@
             if (src && src.setData) src.setData(groundMarkers);
           };
           map.on('zoomend', updateMarkerFootprint);
+          // Expose for 2D/3D toggle to refresh sizes immediately.
+          window.__updateMarkerFootprint = updateMarkerFootprint;
 
           // Click anywhere: if the overlay polygon is under the cursor, show the same popup.
           map.on('click', (e) => {
@@ -560,6 +594,7 @@
         document.getElementById('btn2d').classList.add('active');
         document.getElementById('btn3d').classList.remove('active');
         map.easeTo({ pitch: 0, duration: 400 });
+        if (window.__updateMarkerFootprint) window.__updateMarkerFootprint();
       }
     };
     document.getElementById('btn3d').onclick = () => {
@@ -568,6 +603,7 @@
         document.getElementById('btn3d').classList.add('active');
         document.getElementById('btn2d').classList.remove('active');
         map.easeTo({ pitch: PITCH_3D, duration: 400 });
+        if (window.__updateMarkerFootprint) window.__updateMarkerFootprint();
       }
     };
 
