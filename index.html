@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hong Kong — 3D Map</title>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+      background: #f0f1f3;
+    }
+
+    #map {
+      width: 100%;
+      height: 100vh;
+    }
+
+    .maplibregl-canvas-container {
+      filter: grayscale(100%);
+    }
+
+    .maplibregl-ctrl-group {
+      border-radius: 12px !important;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.25) !important;
+      background: rgba(255, 255, 255, 0.12) !important;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+    }
+
+    .maplibregl-ctrl-group button {
+      width: 36px !important;
+      height: 36px !important;
+      background: transparent !important;
+      border: none !important;
+    }
+
+    .maplibregl-ctrl-attrib {
+      background: rgba(229, 231, 235, 0.9) !important;
+      font-size: 10px;
+    }
+
+    .mode-toggle {
+      position: absolute;
+      top: 12px;
+      right: 52px;
+      z-index: 1;
+      display: flex;
+      gap: 4px;
+    }
+    .mode-btn {
+      width: 36px;
+      height: 36px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: #374151;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: background 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+    }
+    .mode-btn:hover {
+      background: rgba(255, 255, 255, 0.22);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+    }
+    .mode-btn.active {
+      background: rgba(75, 85, 99, 0.35);
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.3);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div class="mode-toggle">
+    <button class="mode-btn" id="btn2d" title="2D">2D</button>
+    <button class="mode-btn active" id="btn3d" title="3D">3D</button>
+  </div>
+
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script>
+    const map = new maplibregl.Map({
+      container: 'map',
+      style: 'https://tiles.openfreemap.org/styles/positron',
+      center: [114.1694, 22.3193],
+      zoom: 14,
+      pitch: 55,
+      bearing: 0
+    });
+
+    map.on('load', () => {
+      ['poi_transit', 'poi_r20', 'poi_r7', 'poi_r1'].forEach(id => {
+        if (map.getLayer(id)) map.removeLayer(id);
+      });
+
+      const layers = map.getStyle().layers;
+      let labelLayerId;
+      for (let i = 0; i < layers.length; i++) {
+        if (layers[i].type === 'symbol' && layers[i].layout['text-field']) {
+          labelLayerId = layers[i].id;
+          break;
+        }
+      }
+
+      // «Пол» — 3D-здания (полупрозрачные), кубы транзакций рисуются поверх
+      map.addSource('openfreemap-buildings', {
+        type: 'vector',
+        url: 'https://tiles.openfreemap.org/planet'
+      });
+      map.addLayer({
+        id: '3d-buildings',
+        source: 'openfreemap-buildings',
+        'source-layer': 'building',
+        type: 'fill-extrusion',
+        minzoom: 14,
+        filter: ['!=', ['get', 'hide_3d'], true],
+        paint: {
+          'fill-extrusion-color': '#e5e7eb',
+          'fill-extrusion-opacity': 0.35,
+          'fill-extrusion-height': [
+            'interpolate', ['linear'], ['zoom'],
+            14, 0,
+            15, ['coalesce', ['get', 'render_height'], 8]
+          ],
+          'fill-extrusion-base': ['case',
+            ['>=', ['get', 'zoom'], 15],
+            ['coalesce', ['get', 'render_min_height'], 0],
+            0
+          ]
+        }
+      }, labelLayerId);
+
+      // Midland 2018: транзакции по их локации на карте (точки)
+      fetch('data/midland_2018_cleaned.geojson')
+        .then(res => res.json())
+        .then(geojson => {
+          map.addSource('midland-2018', {
+            type: 'geojson',
+            data: geojson
+          });
+          map.addLayer({
+            id: 'midland-points',
+            type: 'circle',
+            source: 'midland-2018',
+            filter: ['==', ['geometry-type'], 'Point'],
+            paint: {
+              'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 4, 16, 10],
+              'circle-color': [
+                'interpolate',
+                ['linear'],
+                ['coalesce', ['get', 'price_per_sqft'], 0],
+                5000, '#fbbf24',
+                10000, '#f97316',
+                15000, '#ea580c',
+                20000, '#dc2626',
+                25000, '#9333ea',
+                30000, '#4b0082'
+              ],
+              'circle-stroke-width': 1,
+              'circle-stroke-color': '#fff'
+            }
+          });
+
+          const popup = new maplibregl.Popup({ closeButton: true });
+          map.on('click', 'midland-points', (e) => {
+            const p = e.features[0].properties;
+            const dateStr = p.date ? new Date(p.date).toLocaleDateString() : '';
+            popup.setLngLat(e.lngLat).setHTML(
+              `<div style="min-width:180px;font-size:13px;">
+                <strong>${p.building || ''}</strong><br>
+                ${p.estate ? p.estate + '<br>' : ''}
+                ${p.floor ? 'Floor ' + p.floor + (p.unit ? ' · ' + p.unit : '') + '<br>' : ''}
+                ${p.area ? 'Area: ' + p.area + ' sq ft<br>' : ''}
+                ${p.price != null ? 'Price: HK$ ' + p.price + ' (×10k)<br>' : ''}
+                ${p.price_per_sqft ? 'HK$ ' + Math.round(p.price_per_sqft).toLocaleString() + '/sq ft<br>' : ''}
+                ${dateStr ? dateStr : ''}
+              </div>`
+            ).addTo(map);
+          });
+          map.getCanvas().style.cursor = '';
+          map.on('mouseenter', 'midland-points', () => { map.getCanvas().style.cursor = 'pointer'; });
+          map.on('mouseleave', 'midland-points', () => { map.getCanvas().style.cursor = ''; });
+        })
+        .catch(err => console.warn('Midland data not loaded:', err));
+    });
+
+    map.addControl(new maplibregl.NavigationControl());
+
+    const PITCH_3D = 55;
+    let is3d = true;
+
+    document.getElementById('btn2d').onclick = () => {
+      if (is3d) {
+        is3d = false;
+        document.getElementById('btn2d').classList.add('active');
+        document.getElementById('btn3d').classList.remove('active');
+        map.easeTo({ pitch: 0, duration: 400 });
+      }
+    };
+    document.getElementById('btn3d').onclick = () => {
+      if (!is3d) {
+        is3d = true;
+        document.getElementById('btn3d').classList.add('active');
+        document.getElementById('btn2d').classList.remove('active');
+        map.easeTo({ pitch: PITCH_3D, duration: 400 });
+      }
+    };
+
+    // Rotate map with Command + drag
+    const container = map.getContainer();
+    let rotating = false;
+    let startBearing = 0;
+    let startX = 0;
+
+    container.addEventListener('mousedown', (e) => {
+      if (e.metaKey) {
+        e.preventDefault();
+        rotating = true;
+        startBearing = map.getBearing();
+        startX = e.clientX;
+        container.style.cursor = 'grabbing';
+      }
+    });
+
+    container.addEventListener('mousemove', (e) => {
+      if (rotating) {
+        const delta = e.clientX - startX;
+        map.setBearing(startBearing + delta);
+      } else if (e.metaKey) {
+        container.style.cursor = 'grab';
+      }
+    });
+
+    const stopRotating = () => {
+      rotating = false;
+      container.style.cursor = '';
+    };
+    container.addEventListener('mouseup', stopRotating);
+    container.addEventListener('mouseleave', stopRotating);
+  </script>
+</body>
+</html>
