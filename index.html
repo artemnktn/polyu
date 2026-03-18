@@ -19,6 +19,53 @@
       height: 100vh;
     }
 
+    #overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none; /* let the main map handle interactions */
+    }
+
+    #overlay .maplibregl-canvas-container {
+      filter: none; /* keep overlay colors as-is */
+    }
+
+    /* Always-on-top HTML popup */
+    #txnPopup {
+      position: fixed;
+      z-index: 9999;
+      display: none;
+      min-width: 200px;
+      max-width: 320px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      color: #111827;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+    #txnPopup .close {
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      width: 26px;
+      height: 26px;
+      border: none;
+      border-radius: 10px;
+      background: rgba(17, 24, 39, 0.06);
+      color: #111827;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 26px;
+    }
+    #txnPopup .close:hover {
+      background: rgba(17, 24, 39, 0.10);
+    }
+
     .maplibregl-canvas-container {
       filter: grayscale(100%);
     }
@@ -78,13 +125,117 @@
       border-color: rgba(255, 255, 255, 0.3);
       box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
     }
+
+    .legend {
+      position: absolute;
+      left: 12px;
+      bottom: 12px;
+      z-index: 3;
+      width: 220px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+      padding: 10px 10px 10px 12px;
+      color: #111827;
+      font-size: 12px;
+    }
+    .legend-title {
+      font-weight: 700;
+      font-size: 12px;
+      margin-bottom: 8px;
+      color: #374151;
+    }
+    .legend-row {
+      display: grid;
+      grid-template-columns: 18px 1fr;
+      align-items: center;
+      gap: 8px;
+      margin: 6px 0;
+    }
+    .legend-swatch {
+      width: 18px;
+      height: 12px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+    }
+    .legend-note {
+      margin-top: 8px;
+      color: #6b7280;
+      font-size: 11px;
+      line-height: 1.2;
+    }
+
+    .search-box {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 3;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+      padding: 6px 10px;
+    }
+    .search-box input {
+      width: 200px;
+      padding: 8px 10px;
+      border: none;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.9);
+      color: #111827;
+      font-size: 13px;
+      outline: none;
+    }
+    .search-box input::placeholder {
+      color: #6b7280;
+    }
+    .search-box button {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 8px;
+      background: rgba(75, 85, 99, 0.5);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .search-box button:hover {
+      background: rgba(75, 85, 99, 0.7);
+    }
   </style>
 </head>
 <body>
   <div id="map"></div>
+  <div id="overlay"></div>
+  <div id="txnPopup" role="dialog" aria-live="polite">
+    <button class="close" id="txnPopupClose" aria-label="Close">×</button>
+    <div id="txnPopupBody"></div>
+  </div>
+  <div class="search-box">
+    <input type="text" id="estateSearch" placeholder="Search estate..." list="estate-datalist" autocomplete="off" />
+    <datalist id="estate-datalist"></datalist>
+    <button type="button" id="estateSearchBtn">Go</button>
+  </div>
   <div class="mode-toggle">
     <button class="mode-btn" id="btn2d" title="Flat map (2D)">2D</button>
     <button class="mode-btn active" id="btn3d" title="Tilted view (3D)">3D</button>
+  </div>
+  <div class="legend" id="legend">
+    <div class="legend-title">Price per sq ft (HK$)</div>
+    <div class="legend-row"><div class="legend-swatch" style="background:#440154"></div><div>≤ 5,000</div></div>
+    <div class="legend-row"><div class="legend-swatch" style="background:#31688e"></div><div>10,000</div></div>
+    <div class="legend-row"><div class="legend-swatch" style="background:#1f9e89"></div><div>15,000</div></div>
+    <div class="legend-row"><div class="legend-swatch" style="background:#fde725"></div><div>≥ 20,000</div></div>
+    <div class="legend-note">Viridis · coloured by price_per_sqft</div>
   </div>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
@@ -97,6 +248,33 @@
       pitch: 55,
       bearing: 0
     });
+
+    // A transparent overlay map that renders transaction polygons on top of 3D buildings.
+    const overlay = new maplibregl.Map({
+      container: 'overlay',
+      style: { version: 8, sources: {}, layers: [] },
+      center: [114.1694, 22.3193],
+      zoom: 14,
+      pitch: 55,
+      bearing: 0,
+      interactive: false
+    });
+
+    // Keep overlay camera in sync with the main map.
+    const syncOverlay = () => {
+      const c = map.getCenter();
+      overlay.jumpTo({
+        center: [c.lng, c.lat],
+        zoom: map.getZoom(),
+        bearing: map.getBearing(),
+        pitch: map.getPitch()
+      });
+    };
+    map.on('move', syncOverlay);
+    map.on('pitch', syncOverlay);
+    map.on('rotate', syncOverlay);
+    map.on('zoom', syncOverlay);
+    map.on('resize', () => overlay.resize());
 
     map.on('load', () => {
       ['poi_transit', 'poi_r20', 'poi_r7', 'poi_r1'].forEach(id => {
@@ -147,55 +325,226 @@
         return d.innerHTML;
       }
 
+      const popupEl = document.getElementById('txnPopup');
+      const popupBodyEl = document.getElementById('txnPopupBody');
+      const popupCloseEl = document.getElementById('txnPopupClose');
+      let popupLngLat = null;
+
+      const hidePopup = () => {
+        popupEl.style.display = 'none';
+        popupLngLat = null;
+      };
+      const positionPopup = () => {
+        if (!popupLngLat) return;
+        const p = map.project(popupLngLat);
+        const pad = 12;
+        const w = popupEl.offsetWidth || 240;
+        const h = popupEl.offsetHeight || 140;
+        let left = p.x - w / 2;
+        let top = p.y - h - 14;
+        left = Math.max(pad, Math.min(window.innerWidth - w - pad, left));
+        top = Math.max(pad, Math.min(window.innerHeight - h - pad, top));
+        popupEl.style.left = `${left}px`;
+        popupEl.style.top = `${top}px`;
+      };
+      const showPopup = (lngLat, props) => {
+        const dateStr = props.date ? new Date(props.date).toLocaleDateString('en-GB') : '';
+        popupBodyEl.innerHTML =
+          `<div style="padding-right:22px;">
+            <strong>${escapeHtml(props.building || '')}</strong><br>
+            ${props.estate ? escapeHtml(String(props.estate)) + '<br>' : ''}
+            ${props.floor != null ? 'Floor ' + escapeHtml(String(props.floor)) + (props.unit ? ' · Unit ' + escapeHtml(String(props.unit)) : '') + '<br>' : ''}
+            ${props.area != null ? 'Area: ' + escapeHtml(String(props.area)) + ' sq ft<br>' : ''}
+            ${props.price != null ? 'Price: HK$ ' + escapeHtml(String(props.price)) + ' (×10k)<br>' : ''}
+            ${props.price_per_sqft != null ? 'Price/sq ft: HK$ ' + Math.round(Number(props.price_per_sqft)).toLocaleString('en-HK') + '<br>' : ''}
+            ${dateStr ? 'Date: ' + dateStr : ''}
+          </div>`;
+        popupLngLat = lngLat;
+        popupEl.style.display = 'block';
+        positionPopup();
+      };
+
+      popupCloseEl.addEventListener('click', hidePopup);
+      window.addEventListener('resize', positionPopup);
+      map.on('move', positionPopup);
+
       fetch('data/midland_2018_cleaned.geojson')
         .then(res => res.json())
         .then(geojson => {
-          map.addSource('midland-2018', {
-            type: 'geojson',
-            data: geojson
+          // Render points as small ground polygons so they truly lie on the map plane in 3D.
+          const M_TO_DEG_LAT = 1 / 111320;
+          const COS_LAT = Math.cos(22.3 * Math.PI / 180);
+          const M_TO_DEG_LNG = 1 / (111320 * COS_LAT);
+          const FLOOR_M = 3; // 1 floor = 3 meters
+          const ELEVATION_OFFSET_M = 4; // lift all slabs by +4m
+          const SLAB_THICKNESS_M = 1; // polygon height 1 m
+
+          const rawPoints = (geojson.features || []).filter(f => f && f.geometry && f.geometry.type === 'Point');
+
+          // Estate → flyTo center. Use largest cluster (by building) so we don't land in empty space
+          // when an estate has towers in different locations (e.g. The Avenue).
+          const estateClusters = new Map(); // estate -> Map(clusterKey -> { sumLng, sumLat, n })
+          rawPoints.forEach(f => {
+            const estate = (f.properties && f.properties.estate) ? String(f.properties.estate).trim() : '';
+            if (!estate) return;
+            const [lng, lat] = f.geometry.coordinates;
+            const clusterKey = `${lng.toFixed(5)}\t${lat.toFixed(5)}`;
+            if (!estateClusters.has(estate)) estateClusters.set(estate, new Map());
+            const clusters = estateClusters.get(estate);
+            if (!clusters.has(clusterKey)) clusters.set(clusterKey, { sumLng: 0, sumLat: 0, n: 0 });
+            const c = clusters.get(clusterKey);
+            c.sumLng += lng;
+            c.sumLat += lat;
+            c.n += 1;
           });
-          map.addLayer({
-            id: 'midland-points',
-            type: 'circle',
-            source: 'midland-2018',
-            filter: ['==', ['geometry-type'], 'Point'],
-            paint: {
-              'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 4, 16, 10],
-              'circle-color': [
-                'interpolate',
-                ['linear'],
-                ['coalesce', ['get', 'price_per_sqft'], 0],
-                5000, '#fbbf24',
-                10000, '#f97316',
-                15000, '#ea580c',
-                20000, '#dc2626',
-                25000, '#9333ea',
-                30000, '#4b0082'
-              ],
-              'circle-stroke-width': 1,
-              'circle-stroke-color': '#fff'
-            }
+          const estateCenters = new Map();
+          estateClusters.forEach((clusters, estate) => {
+            let best = null;
+            let bestN = 0;
+            clusters.forEach((v, key) => {
+              if (v.n > bestN) { bestN = v.n; best = v; }
+            });
+            if (best) estateCenters.set(estate, [best.sumLng / best.n, best.sumLat / best.n]);
           });
 
-          const popup = new maplibregl.Popup({ closeButton: true });
-          map.on('click', 'midland-points', (e) => {
-            const p = e.features[0].properties;
-            const dateStr = p.date ? new Date(p.date).toLocaleDateString('en-GB') : '';
-            popup.setLngLat(e.lngLat).setHTML(
-              `<div style="min-width:180px;font-size:13px;">
-                <strong>${escapeHtml(p.building || '')}</strong><br>
-                ${p.estate ? escapeHtml(String(p.estate)) + '<br>' : ''}
-                ${p.floor != null ? 'Floor ' + escapeHtml(String(p.floor)) + (p.unit ? ' · Unit ' + escapeHtml(String(p.unit)) : '') + '<br>' : ''}
-                ${p.area != null ? 'Area: ' + escapeHtml(String(p.area)) + ' sq ft<br>' : ''}
-                ${p.price != null ? 'Price: HK$ ' + escapeHtml(String(p.price)) + ' (×10k)<br>' : ''}
-                ${p.price_per_sqft != null ? 'Price/sq ft: HK$ ' + Math.round(Number(p.price_per_sqft)).toLocaleString('en-HK') + '<br>' : ''}
-                ${dateStr ? 'Date: ' + dateStr : ''}
-              </div>`
-            ).addTo(map);
+          const estateNames = [...estateCenters.keys()].sort((a, b) => a.localeCompare(b));
+          const datalist = document.getElementById('estate-datalist');
+          datalist.innerHTML = estateNames.map(name => `<option value="${name.replace(/"/g, '&quot;')}">`).join('');
+
+          const doSearch = () => {
+            const query = (document.getElementById('estateSearch').value || '').trim();
+            if (!query) return;
+            const q = query.toLowerCase();
+            const match = estateNames.find(n => n.toLowerCase() === q) ||
+              estateNames.find(n => n.toLowerCase().startsWith(q)) ||
+              estateNames.find(n => n.toLowerCase().includes(q));
+            if (!match) return;
+            const center = estateCenters.get(match);
+            if (!center) return;
+            map.flyTo({ center, zoom: 16, pitch: 55, duration: 1500 });
+          };
+          document.getElementById('estateSearchBtn').addEventListener('click', doSearch);
+          document.getElementById('estateSearch').addEventListener('keydown', (e) => { if (e.key === 'Enter') doSearch(); });
+
+          const markerSizeForZoomM = (z) => {
+            // Adaptive size: zoom out -> bigger polygons (meters on the ground).
+            // Tuned so it stays readable when far out.
+            if (z <= 11) return 70;
+            if (z <= 12) return 55;
+            if (z <= 13) return 42;
+            if (z <= 14) return 32;
+            if (z <= 15) return 24;
+            return 18;
+          };
+
+          const buildMarkers = (markerM) => {
+            const halfLat = (markerM / 2) * M_TO_DEG_LAT;
+            const halfLng = (markerM / 2) * M_TO_DEG_LNG;
+            return {
+              type: 'FeatureCollection',
+              features: rawPoints.map(f => {
+                const [lng, lat] = f.geometry.coordinates;
+                const floor = f.properties && f.properties.floor != null ? Number(f.properties.floor) : 0;
+                const baseElevation = floor * FLOOR_M + ELEVATION_OFFSET_M;
+                return {
+                  type: 'Feature',
+                  properties: {
+                    ...(f.properties || {}),
+                    baseElevation,
+                    topElevation: baseElevation + SLAB_THICKNESS_M
+                  },
+                  geometry: {
+                    type: 'Polygon',
+                    coordinates: [[
+                      [lng - halfLng, lat - halfLat],
+                      [lng + halfLng, lat - halfLat],
+                      [lng + halfLng, lat + halfLat],
+                      [lng - halfLng, lat + halfLat],
+                      [lng - halfLng, lat - halfLat]
+                    ]]
+                  }
+                };
+              })
+            };
+          };
+
+          let groundMarkers = buildMarkers(markerSizeForZoomM(map.getZoom()));
+
+          // Overlay polygons are rendered in a separate transparent map so they can’t be occluded.
+          const addOverlayLayer = () => {
+            if (overlay.getSource('midland-2018')) return;
+            overlay.addSource('midland-2018', {
+              type: 'geojson',
+              data: groundMarkers
+            });
+            // Elevated flat slabs (floor-based) in the overlay map: always visible above 3D buildings.
+            overlay.addLayer({
+              id: 'midland-slabs',
+              type: 'fill-extrusion',
+              source: 'midland-2018',
+              paint: {
+                'fill-extrusion-base': ['get', 'baseElevation'],
+                'fill-extrusion-height': ['get', 'topElevation'],
+                'fill-extrusion-color': [
+                  'interpolate',
+                  ['linear'],
+                  ['coalesce', ['get', 'price_per_sqft'], 0],
+                  5000, '#440154',
+                  10000, '#31688e',
+                  15000, '#1f9e89',
+                  20000, '#fde725'
+                ],
+                'fill-extrusion-opacity': 0.9
+              }
+            });
+            overlay.addLayer({
+              id: 'midland-overlay',
+              type: 'fill',
+              source: 'midland-2018',
+              paint: {
+                'fill-color': [
+                  'interpolate',
+                  ['linear'],
+                  ['coalesce', ['get', 'price_per_sqft'], 0],
+                  5000, '#440154',
+                  10000, '#31688e',
+                  15000, '#1f9e89',
+                  20000, '#fde725'
+                ],
+                'fill-opacity': 0.95,
+                'fill-outline-color': '#ffffff'
+              }
+            });
+            syncOverlay();
+          };
+          if (overlay.isStyleLoaded()) addOverlayLayer();
+          else overlay.once('load', addOverlayLayer);
+
+          // Update polygon footprint when zooming (zoom out => bigger polygons).
+          const updateMarkerFootprint = () => {
+            const z = map.getZoom();
+            groundMarkers = buildMarkers(markerSizeForZoomM(z));
+            const src = overlay.getSource('midland-2018');
+            if (src && src.setData) src.setData(groundMarkers);
+          };
+          map.on('zoomend', updateMarkerFootprint);
+
+          // Click anywhere: if the overlay polygon is under the cursor, show the same popup.
+          map.on('click', (e) => {
+            if (!overlay.isStyleLoaded()) return;
+            const feats = overlay.queryRenderedFeatures(e.point, { layers: ['midland-slabs', 'midland-overlay'] });
+            if (!feats || feats.length === 0) {
+              hidePopup();
+              return;
+            }
+            showPopup(e.lngLat, feats[0].properties || {});
           });
           map.getCanvas().style.cursor = '';
-          map.on('mouseenter', 'midland-points', () => { map.getCanvas().style.cursor = 'pointer'; });
-          map.on('mouseleave', 'midland-points', () => { map.getCanvas().style.cursor = ''; });
+          map.on('mousemove', (e) => {
+            if (!overlay.isStyleLoaded()) return;
+            const feats = overlay.queryRenderedFeatures(e.point, { layers: ['midland-slabs', 'midland-overlay'] });
+            map.getCanvas().style.cursor = feats && feats.length ? 'pointer' : '';
+          });
         })
         .catch(err => console.warn('Could not load Midland GeoJSON:', err));
     });
