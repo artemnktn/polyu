@@ -11,8 +11,13 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
+    :root {
+      --font-mono: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    body, input, button, .legend, #txnPopup, .maplibregl-ctrl-attrib {
+      font-family: var(--font-mono);
+    }
     body {
-      font-family: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       overflow: hidden;
       background: #f0f1f3;
     }
@@ -48,6 +53,7 @@
       -webkit-backdrop-filter: blur(12px);
       box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
       color: #111827;
+      font-family: var(--font-mono);
       font-size: 13px;
       line-height: 1.35;
     }
@@ -114,10 +120,17 @@
       -webkit-backdrop-filter: blur(12px);
       color: #374151;
       cursor: pointer;
+      font-family: var(--font-mono);
       font-size: 12px;
       font-weight: 600;
       transition: background 0.2s, box-shadow 0.2s;
       box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+    }
+    .txn-toggle .mode-btn {
+      width: auto;
+      min-width: 120px;
+      height: 36px;
+      padding: 0 12px;
     }
     .mode-btn:hover {
       background: rgba(255, 255, 255, 0.22);
@@ -128,6 +141,12 @@
       color: #fff;
       border-color: rgba(255, 255, 255, 0.3);
       box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    }
+    .txn-toggle {
+      position: absolute;
+      top: 12px;
+      right: 250px;
+      z-index: 3;
     }
 
     .legend {
@@ -147,6 +166,7 @@
       font-size: 12px;
     }
     .legend-title {
+      font-family: var(--font-mono);
       font-weight: 700;
       font-size: 12px;
       margin-bottom: 8px;
@@ -196,6 +216,7 @@
       border-radius: 8px;
       background: rgba(255, 255, 255, 0.9);
       color: #111827;
+      font-family: var(--font-mono);
       font-size: 13px;
       outline: none;
     }
@@ -208,12 +229,104 @@
       border-radius: 8px;
       background: rgba(75, 85, 99, 0.5);
       color: #fff;
+      font-family: var(--font-mono);
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
     }
     .search-box button:hover {
       background: rgba(75, 85, 99, 0.7);
+    }
+
+    .estate-txns-widget {
+      position: absolute;
+      left: 12px;
+      top: 88px;
+      bottom: 200px;
+      z-index: 4;
+      width: 360px;
+      max-width: calc(100vw - 24px);
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+      display: none;
+      overflow: hidden;
+      color: #111827;
+      flex-direction: column;
+    }
+    .estate-txns-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 10px 8px;
+      color: #374151;
+      font-weight: 700;
+      font-size: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+    }
+    .estate-txns-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .estate-txns-close {
+      width: 28px;
+      height: 28px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, 0.20);
+      color: #374151;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 26px;
+    }
+    .estate-txns-close:hover {
+      background: rgba(255, 255, 255, 0.30);
+    }
+    .estate-txns-meta {
+      padding: 6px 10px 8px;
+      color: #6b7280;
+      font-size: 11px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .estate-txns-list {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      padding: 8px 8px 10px;
+    }
+    .estate-txn-row {
+      display: grid;
+      grid-template-columns: 56px 56px 1fr;
+      gap: 8px;
+      padding: 8px 8px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      background: rgba(255, 255, 255, 0.06);
+      margin-bottom: 8px;
+      cursor: pointer;
+    }
+    .estate-txn-row:hover {
+      background: rgba(255, 255, 255, 0.10);
+    }
+    .estate-txn-row .f {
+      font-weight: 700;
+      color: #374151;
+      font-size: 12px;
+    }
+    .estate-txn-row .u {
+      color: #6b7280;
+      font-size: 12px;
+    }
+    .estate-txn-row .r {
+      color: #111827;
+      font-size: 12px;
+      line-height: 1.2;
+      word-break: break-word;
     }
   </style>
 </head>
@@ -233,44 +346,33 @@
     <button class="mode-btn" id="btn2d" title="Flat map (2D)">2D</button>
     <button class="mode-btn active" id="btn3d" title="Tilted view (3D)">3D</button>
   </div>
+  <div class="txn-toggle">
+    <button class="mode-btn active" id="btnTxn" title="Toggle transactions">Transactions</button>
+  </div>
   <div class="legend" id="legend">
     <div class="legend-title">Price per sq ft (HK$)</div>
     <div class="legend-row"><div class="legend-swatch" style="background:#440154"></div><div>≤ 5,000</div></div>
-    <div class="legend-row"><div class="legend-swatch" style="background:#31688e"></div><div>10,000</div></div>
-    <div class="legend-row"><div class="legend-swatch" style="background:#1f9e89"></div><div>15,000</div></div>
-    <div class="legend-row"><div class="legend-swatch" style="background:#fde725"></div><div>≥ 20,000</div></div>
+    <div class="legend-row"><div class="legend-swatch" style="background:#414487"></div><div>10,000</div></div>
+    <div class="legend-row"><div class="legend-swatch" style="background:#2a788e"></div><div>15,000</div></div>
+    <div class="legend-row"><div class="legend-swatch" style="background:#22a884"></div><div>20,000</div></div>
+    <div class="legend-row"><div class="legend-swatch" style="background:#7ad151"></div><div>25,000</div></div>
+    <div class="legend-row"><div class="legend-swatch" style="background:#fde725"></div><div>≥ 30,000</div></div>
     <div class="legend-note">Viridis · coloured by price_per_sqft</div>
   </div>
 
+  <div class="estate-txns-widget" id="estateTxnsWidget">
+    <div class="estate-txns-header">
+      <div class="estate-txns-title" id="estateTxnsTitle">Estate transactions</div>
+      <button class="estate-txns-close" id="estateTxnsClose" aria-label="Close">×</button>
+    </div>
+    <div class="estate-txns-meta" id="estateTxnsMeta"></div>
+    <div class="estate-txns-list" id="estateTxnsList"></div>
+  </div>
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script>
-    // Optional: Mapbox Light Grey basemap (requires token).
-    // Create a token at https://account.mapbox.com/ and paste it here.
-    const MAPBOX_TOKEN = ''; // Set your token from https://account.mapbox.com/ to use Mapbox Light basemap
-    const MAPBOX_LIGHT_STYLE = {
-      version: 8,
-      sources: {
-        'mapbox-light': {
-          type: 'raster',
-          tiles: [
-            `https://api.mapbox.com/styles/v1/mapbox/light-v11/tiles/256/{z}/{x}/{y}@2x?access_token=${MAPBOX_TOKEN}`
-          ],
-          tileSize: 256,
-          attribution:
-            '© <a href="https://www.mapbox.com/about/maps/" target="_blank" rel="noopener">Mapbox</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'
-        }
-      },
-      layers: [
-        { id: 'background', type: 'background', paint: { 'background-color': '#f3f4f6' } },
-        { id: 'mapbox-light', type: 'raster', source: 'mapbox-light' }
-      ]
-    };
-
-    const BASEMAP_STYLE = MAPBOX_TOKEN ? MAPBOX_LIGHT_STYLE : 'https://tiles.openfreemap.org/styles/positron';
-
     const map = new maplibregl.Map({
       container: 'map',
-      style: BASEMAP_STYLE,
+      style: 'https://tiles.openfreemap.org/styles/positron',
       center: [114.1694, 22.3193],
       zoom: 14,
       pitch: 55,
@@ -346,12 +448,136 @@
         }
       }, labelLayerId);
 
-      // Midland 2018: one point per transaction at its location
+      // Transactions dataset: one point per transaction at its location
       function escapeHtml(s) {
         const d = document.createElement('div');
         d.textContent = s;
         return d.innerHTML;
       }
+
+      const parseCsvText = (text) => {
+        const rows = [];
+        let row = [];
+        let cell = '';
+        let inQuotes = false;
+        for (let i = 0; i < text.length; i += 1) {
+          const ch = text[i];
+          if (inQuotes) {
+            if (ch === '"') {
+              if (text[i + 1] === '"') {
+                cell += '"';
+                i += 1;
+              } else {
+                inQuotes = false;
+              }
+            } else {
+              cell += ch;
+            }
+            continue;
+          }
+          if (ch === '"') {
+            inQuotes = true;
+          } else if (ch === ',') {
+            row.push(cell);
+            cell = '';
+          } else if (ch === '\n') {
+            row.push(cell);
+            rows.push(row);
+            row = [];
+            cell = '';
+          } else if (ch !== '\r') {
+            cell += ch;
+          }
+        }
+        row.push(cell);
+        // Avoid adding an extra empty row for trailing newlines.
+        if (row.length > 1 || row[0] !== '') rows.push(row);
+        return rows;
+      };
+
+      const csvRowsToPointFeatures = (rows) => {
+        if (!rows || rows.length < 2) return [];
+        const headers = rows[0].map(h => String(h || '').trim());
+        const idx = new Map(headers.map((h, i) => [h, i]));
+        const gi = (name) => idx.has(name) ? idx.get(name) : -1;
+        const iLat = gi('latitude');
+        const iLng = gi('longitude');
+        if (iLat < 0 || iLng < 0) return [];
+
+        const asNum = (v) => {
+          const n = Number(String(v == null ? '' : v).trim());
+          return Number.isFinite(n) ? n : null;
+        };
+        const asText = (v) => String(v == null ? '' : v).trim();
+        const safe = (arr, i) => (i >= 0 && i < arr.length ? arr[i] : '');
+
+        const features = [];
+        const seenTxnKeys = new Set();
+        for (let r = 1; r < rows.length; r += 1) {
+          const row = rows[r];
+          const lat = asNum(safe(row, iLat));
+          const lng = asNum(safe(row, iLng));
+          if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+
+          const address = asText(safe(row, gi('address')));
+          const estate = address ? address.split(',')[0].trim() : '';
+          const unitRateRaw = asNum(safe(row, gi('unit_rate')));
+          const pricePerSqft = unitRateRaw == null
+            ? null
+            : (unitRateRaw <= 500 ? unitRateRaw * 1000 : unitRateRaw);
+
+          const tower = asText(safe(row, gi('Tower')));
+          const block = asText(safe(row, gi('Block')));
+          const phase = asText(safe(row, gi('Phase')));
+          const floorVal = asNum(safe(row, gi('floor'))) ?? 0;
+          const unit = asText(safe(row, gi('Flat')));
+          const area = asNum(safe(row, gi('saleable_area(ft^2)')));
+          const price = asNum(safe(row, gi('price')));
+          const dateVal = asText(safe(row, gi('date'))) || null;
+
+          // Drop exact duplicate transaction rows from source CSV.
+          const dedupeKey = [
+            estate,
+            address,
+            dateVal || '',
+            String(floorVal),
+            unit,
+            String(area == null ? '' : area),
+            String(price == null ? '' : price),
+            String(pricePerSqft == null ? '' : pricePerSqft),
+            tower,
+            block,
+            phase,
+            lng.toFixed(8),
+            lat.toFixed(8)
+          ].join('\t');
+          if (seenTxnKeys.has(dedupeKey)) continue;
+          seenTxnKeys.add(dedupeKey);
+
+          const building = [estate, phase && `Phase ${phase}`, tower && `Tower ${tower}`, block && `Block ${block}`]
+            .filter(Boolean)
+            .join(', ');
+
+          features.push({
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [lng, lat] },
+            properties: {
+              estate,
+              building: building || estate || address,
+              address,
+              unit,
+              floor: floorVal,
+              area,
+              price,
+              price_per_sqft: pricePerSqft,
+              date: dateVal,
+              district: asText(safe(row, gi('district'))),
+              changes: asText(safe(row, gi('changes')))
+            }
+          });
+        }
+        return features;
+      };
 
       const popupEl = document.getElementById('txnPopup');
       const popupBodyEl = document.getElementById('txnPopupBody');
@@ -409,6 +635,87 @@
 
           const rawPoints = (geojson.features || []).filter(f => f && f.geometry && f.geometry.type === 'Point');
 
+          // Estate -> transactions for the widget
+          const estateTxns = new Map(); // estate -> array of { lng, lat, props }
+          rawPoints.forEach(f => {
+            const estate = (f.properties && f.properties.estate) ? String(f.properties.estate).trim() : '';
+            if (!estate) return;
+            const [lng, lat] = f.geometry.coordinates;
+            if (!Number.isFinite(lng) || !Number.isFinite(lat)) return;
+            if (!estateTxns.has(estate)) estateTxns.set(estate, []);
+            estateTxns.get(estate).push({ lng, lat, props: f.properties || {} });
+          });
+
+          const estateTxnsWidget = document.getElementById('estateTxnsWidget');
+          const estateTxnsTitle = document.getElementById('estateTxnsTitle');
+          const estateTxnsMeta = document.getElementById('estateTxnsMeta');
+          const estateTxnsList = document.getElementById('estateTxnsList');
+          const estateTxnsClose = document.getElementById('estateTxnsClose');
+
+          const openEstateTxns = (estateName) => {
+            const items = estateTxns.get(estateName) || [];
+            if (!items.length) return;
+
+            estateTxnsTitle.textContent = estateName;
+
+            const maxShow = 120;
+            const sorted = items
+              .slice()
+              .sort((a, b) => {
+                const fa = Number(a.props.floor);
+                const fb = Number(b.props.floor);
+                if (Number.isFinite(fa) && Number.isFinite(fb)) return fb - fa;
+                const da = a.props.date ? new Date(a.props.date).getTime() : 0;
+                const db = b.props.date ? new Date(b.props.date).getTime() : 0;
+                return db - da;
+              });
+
+            estateTxnsMeta.textContent = `Transactions: ${items.length} (showing top ${Math.min(maxShow, items.length)})`;
+            estateTxnsList.innerHTML = sorted.slice(0, maxShow).map(t => {
+              const floor = t.props.floor != null ? String(t.props.floor) : '';
+              const unit = t.props.unit != null ? String(t.props.unit) : '';
+              const ppsf = t.props.price_per_sqft != null
+                ? `HK$ ${Math.round(Number(t.props.price_per_sqft)).toLocaleString('en-HK')}/sq ft`
+                : '';
+              const dateStr = t.props.date ? new Date(t.props.date).toLocaleDateString('en-GB') : '';
+              const building = t.props.building ? String(t.props.building) : '';
+              return `
+                <div class="estate-txn-row" data-lng="${t.lng}" data-lat="${t.lat}">
+                  <div class="f">${escapeHtml(floor)}</div>
+                  <div class="u">${escapeHtml(unit)}</div>
+                  <div class="r">
+                    ${escapeHtml(ppsf)}<br>
+                    ${escapeHtml(building)}${dateStr ? `<br>${escapeHtml(dateStr)}` : ''}
+                  </div>
+                </div>
+              `;
+            }).join('');
+
+            estateTxnsWidget.style.display = 'flex';
+          };
+
+          estateTxnsClose.addEventListener('click', () => {
+            estateTxnsWidget.style.display = 'none';
+          });
+
+          // Click a row: fly to it and show the transaction popup.
+          estateTxnsList.addEventListener('click', (e) => {
+            const row = e.target && e.target.closest ? e.target.closest('.estate-txn-row') : null;
+            if (!row) return;
+            const lng = Number(row.getAttribute('data-lng'));
+            const lat = Number(row.getAttribute('data-lat'));
+            if (!Number.isFinite(lng) || !Number.isFinite(lat)) return;
+
+            // Find the first matching transaction at the same coordinates within this estate.
+            // (Coordinates were rounded only for cluster center; for listing we keep original points.)
+            const currentEstate = estateTxnsTitle.textContent;
+            const items = estateTxns.get(currentEstate) || [];
+            const hit = items.find(t => Math.abs(t.lng - lng) < 1e-6 && Math.abs(t.lat - lat) < 1e-6);
+            if (!hit) return;
+            map.flyTo({ center: [lng, lat], zoom: 16, pitch: 55, duration: 800 });
+            showPopup([lng, lat], hit.props || {});
+          });
+
           // Estate → flyTo center. Use largest cluster (by building) so we don't land in empty space
           // when an estate has towers in different locations (e.g. The Avenue).
           const estateClusters = new Map(); // estate -> Map(clusterKey -> { sumLng, sumLat, n })
@@ -450,9 +757,47 @@
             const center = estateCenters.get(match);
             if (!center) return;
             map.flyTo({ center, zoom: 16, pitch: 55, duration: 1500 });
+
+            // Open the transactions widget for this estate
+            openEstateTxns(match);
           };
           document.getElementById('estateSearchBtn').addEventListener('click', doSearch);
           document.getElementById('estateSearch').addEventListener('keydown', (e) => { if (e.key === 'Enter') doSearch(); });
+          document.getElementById('estateSearch').addEventListener('change', doSearch);
+
+          // Precompute slots for transactions sharing the same location and floor.
+          // This prevents full overlap and makes each transaction visible.
+          const floorGroupSlotByIndex = new Array(rawPoints.length);
+          const floorGroups = new Map(); // key -> point indices
+          rawPoints.forEach((f, idx) => {
+            const [lng, lat] = f.geometry.coordinates;
+            const floorRaw = f.properties && f.properties.floor != null ? Number(f.properties.floor) : 0;
+            const floor = Number.isFinite(floorRaw) ? floorRaw : 0;
+            const key = `${lng.toFixed(8)}\t${lat.toFixed(8)}\t${floor}`;
+            if (!floorGroups.has(key)) floorGroups.set(key, []);
+            floorGroups.get(key).push(idx);
+          });
+          floorGroups.forEach((indices) => {
+            if (!indices.length) return;
+            const sorted = indices.slice().sort((ia, ib) => {
+              const a = rawPoints[ia].properties || {};
+              const b = rawPoints[ib].properties || {};
+              const ua = String(a.unit || '');
+              const ub = String(b.unit || '');
+              if (ua !== ub) return ua.localeCompare(ub);
+              const da = a.date ? new Date(a.date).getTime() : 0;
+              const db = b.date ? new Date(b.date).getTime() : 0;
+              return da - db;
+            });
+            const n = sorted.length;
+            const cols = Math.ceil(Math.sqrt(n));
+            const rows = Math.ceil(n / cols);
+            sorted.forEach((pointIdx, k) => {
+              const col = k % cols;
+              const row = Math.floor(k / cols);
+              floorGroupSlotByIndex[pointIdx] = { col, row, cols, rows };
+            });
+          });
 
           const markerSizeForZoomM = (z) => {
             // Adaptive size: zoom out -> bigger polygons (meters on the ground).
@@ -461,8 +806,8 @@
             else if (z <= 12) m = 95;
             else if (z <= 13) m = 70;
             else if (z <= 14) m = 52;
-            else if (z <= 15) m = 38;
-            else m = 26;
+            else if (z <= 15) m = 22;
+            else m = 10;
 
             // In 2D mode (pitch=0), make polygons much larger on zoom-out (3×).
             if (!is3d && z <= 14) m *= 3;
@@ -470,14 +815,27 @@
           };
 
           const buildMarkers = (markerM) => {
-            const halfLat = (markerM / 2) * M_TO_DEG_LAT;
-            const halfLng = (markerM / 2) * M_TO_DEG_LNG;
+            const footprintM = markerM * 1.7; // total area reserved per location+floor group
+            const minCellM = 3; // keep tiny groups still visible/clickable
             return {
               type: 'FeatureCollection',
-              features: rawPoints.map(f => {
+              features: rawPoints.map((f, idx) => {
                 const [lng, lat] = f.geometry.coordinates;
                 const floor = f.properties && f.properties.floor != null ? Number(f.properties.floor) : 0;
                 const baseElevation = floor * FLOOR_M + ELEVATION_OFFSET_M;
+                const slot = floorGroupSlotByIndex[idx] || { col: 0, row: 0, cols: 1, rows: 1 };
+
+                // Divide the footprint into exactly N non-overlapping grid cells.
+                const cellWm = Math.max(minCellM, footprintM / slot.cols);
+                const cellHm = Math.max(minCellM, footprintM / slot.rows);
+                const centerXm = -footprintM / 2 + (slot.col + 0.5) * (footprintM / slot.cols);
+                const centerYm = -footprintM / 2 + (slot.row + 0.5) * (footprintM / slot.rows);
+                const halfLng = (cellWm / 2) * M_TO_DEG_LNG * 0.9;
+                const halfLat = (cellHm / 2) * M_TO_DEG_LAT * 0.9;
+                const dx = centerXm * M_TO_DEG_LNG;
+                const dy = centerYm * M_TO_DEG_LAT;
+                const clng = lng + dx;
+                const clat = lat + dy;
                 return {
                   type: 'Feature',
                   properties: {
@@ -488,11 +846,11 @@
                   geometry: {
                     type: 'Polygon',
                     coordinates: [[
-                      [lng - halfLng, lat - halfLat],
-                      [lng + halfLng, lat - halfLat],
-                      [lng + halfLng, lat + halfLat],
-                      [lng - halfLng, lat + halfLat],
-                      [lng - halfLng, lat - halfLat]
+                      [clng - halfLng, clat - halfLat],
+                      [clng + halfLng, clat - halfLat],
+                      [clng + halfLng, clat + halfLat],
+                      [clng - halfLng, clat + halfLat],
+                      [clng - halfLng, clat - halfLat]
                     ]]
                   }
                 };
@@ -522,32 +880,24 @@
                   ['linear'],
                   ['coalesce', ['get', 'price_per_sqft'], 0],
                   5000, '#440154',
-                  10000, '#31688e',
-                  15000, '#1f9e89',
-                  20000, '#fde725'
+                  10000, '#414487',
+                  15000, '#2a788e',
+                  20000, '#22a884',
+                  25000, '#7ad151',
+                  30000, '#fde725'
                 ],
                 'fill-extrusion-opacity': 0.9
               }
             });
-            overlay.addLayer({
-              id: 'midland-overlay',
-              type: 'fill',
-              source: 'midland-2018',
-              paint: {
-                'fill-color': [
-                  'interpolate',
-                  ['linear'],
-                  ['coalesce', ['get', 'price_per_sqft'], 0],
-                  5000, '#440154',
-                  10000, '#31688e',
-                  15000, '#1f9e89',
-                  20000, '#fde725'
-                ],
-                'fill-opacity': 0.95,
-                'fill-outline-color': 'rgba(0,0,0,0)'
-              }
-            });
             syncOverlay();
+            const vis = transactionsVisible ? 'visible' : 'none';
+            overlay.setLayoutProperty('midland-slabs', 'visibility', vis);
+            window.__setTransactionsVisible = (v) => {
+              transactionsVisible = v;
+              if (overlay.getLayer('midland-slabs')) {
+                overlay.setLayoutProperty('midland-slabs', 'visibility', v ? 'visible' : 'none');
+              }
+            };
           };
           if (overlay.isStyleLoaded()) addOverlayLayer();
           else overlay.once('load', addOverlayLayer);
@@ -566,7 +916,7 @@
           // Click anywhere: if the overlay polygon is under the cursor, show the same popup.
           map.on('click', (e) => {
             if (!overlay.isStyleLoaded()) return;
-            const feats = overlay.queryRenderedFeatures(e.point, { layers: ['midland-slabs', 'midland-overlay'] });
+            const feats = overlay.queryRenderedFeatures(e.point, { layers: ['midland-slabs'] });
             if (!feats || feats.length === 0) {
               hidePopup();
               return;
@@ -576,7 +926,7 @@
           map.getCanvas().style.cursor = '';
           map.on('mousemove', (e) => {
             if (!overlay.isStyleLoaded()) return;
-            const feats = overlay.queryRenderedFeatures(e.point, { layers: ['midland-slabs', 'midland-overlay'] });
+            const feats = overlay.queryRenderedFeatures(e.point, { layers: ['midland-slabs'] });
             map.getCanvas().style.cursor = feats && feats.length ? 'pointer' : '';
           });
         })
@@ -587,6 +937,7 @@
 
     const PITCH_3D = 55;
     let is3d = true;
+    let transactionsVisible = true;
 
     document.getElementById('btn2d').onclick = () => {
       if (is3d) {
@@ -605,6 +956,12 @@
         map.easeTo({ pitch: PITCH_3D, duration: 400 });
         if (window.__updateMarkerFootprint) window.__updateMarkerFootprint();
       }
+    };
+
+    document.getElementById('btnTxn').onclick = () => {
+      transactionsVisible = !transactionsVisible;
+      if (window.__setTransactionsVisible) window.__setTransactionsVisible(transactionsVisible);
+      document.getElementById('btnTxn').classList.toggle('active', transactionsVisible);
     };
 
     // Rotate map with Command + drag
